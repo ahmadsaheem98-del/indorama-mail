@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>View Form</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f2f2f2;
+    padding:20px;
+}
+
+/* ================= SHEET ================= */
+
+.sheet{
+    width:1100px;
+    max-width:100%;
+    margin:auto;
+    background:white;
+    border:2px solid #000;
+    padding:15px;
+}
+
+/* ================= HEADER ================= */
+
+.top-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.logo img{
+    max-height:80px;
+    width:auto;
+}
+
+/* ================= TITLE ================= */
+
+.title{
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+    text-decoration:underline;
+    margin-bottom:15px;
+}
+
+/* ================= HEADING ================= */
+
+.heading{
+    background:#7f7358;
+    color:white;
+    font-weight:bold;
+    padding:6px 10px;
+    border:1px solid #000;
+    margin-top:10px;
+}
+
+/* ================= SECTION ================= */
+
+.section{
+    border:1px solid #000;
+    padding:10px;
+}
+
+/* ================= ROW ================= */
+
+.row{
+    display:flex;
+    margin-bottom:12px;
+    gap:20px;
+}
+
+/* ================= FIELD ================= */
+
+.field{
+    flex:1;
+}
+
+label{
+    display:block;
+    font-size:14px;
+    font-weight:bold;
+    margin-bottom:4px;
+}
+
+/* ================= VALUE ================= */
+
+.value{
+    border-bottom:1px solid #000;
+    padding:5px;
+    min-height:30px;
+    word-break:break-word;
+}
+
+/* ================= LONG BOX ================= */
+
+.long-box{
+    height:120px;
+    border:1px solid #000;
+}
+
+/* ================= NOTE ================= */
+
+.note{
+    font-size:13px;
+    margin-top:8px;
+}
+
+/* ================= FOOTER ================= */
+
+.footer-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top:50px;
+}
+
+/* ================= SIGN ================= */
+
+.sign{
+    width:300px;
+    border-top:1px solid #000;
+    text-align:center;
+    padding-top:5px;
+}
+
+/* ================= TEXTAREA ================= */
+
+textarea{
+    width:100%;
+    min-height:100px;
+    border:none;
+    resize:none;
+    outline:none;
+    background:white;
+    padding:10px;
+}
+
+/* ================= BUTTON ================= */
+
+.btn{
+    padding:10px 20px;
+    margin-top:20px;
+}
+
+/* ================= STATUS BADGE ================= */
+
+.status-approved{
+    color:green;
+    font-weight:bold;
+}
+
+.status-pending{
+    color:orange;
+    font-weight:bold;
+}
+
+.status-rejected{
+    color:red;
+    font-weight:bold;
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:768px){
+
+    body{
+        padding:10px;
+    }
+
+    .sheet{
+        width:100%;
+        padding:10px;
+    }
+
+    .row{
+        flex-direction:column;
+        gap:10px;
+    }
+
+    .footer-row{
+        flex-direction:column;
+        gap:30px;
+        align-items:center;
+    }
+
+    .sign{
+        width:100%;
+    }
+
+    .title{
+        font-size:18px;
+    }
+
+}
+
+/* ================= PRINT ================= */
+
+@media print{
+
+    body{
+        background:white;
+        padding:0;
+    }
+
+    .sheet{
+        border:none;
+        width:100%;
+    }
+
+    .no-print{
+        display:none !important;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sheet">
+
+    <!-- ================= HEADER ================= -->
+
+    <div class="top-header">
+
+        <div class="logo">
+            <img src="{{ url_for('static', filename='download.png') }}">
+        </div>
+
+    </div>
+
+    <!-- ================= TITLE ================= -->
+
+    <div class="title">
+        MAIL ID CREATION REQUISITION FORM
+    </div>
+
+    <!-- ================= DATE ================= -->
+
+    <div class="field" style="text-align:right;">
+
+        <label>Effective Date</label>
+
+        <div class="value">
+            {{ form.form_date }}
+        </div>
+
+    </div>
+
+    <!-- ================= STATUS ================= -->
+
+    <div style="margin-bottom:15px;">
+
+        <label>Status</label>
+
+        <div class="value">
+
+            {% if form.hr_status == "Approved" %}
+                <span class="status-approved">Approved</span>
+
+            {% elif form.hr_status == "Rejected" %}
+                <span class="status-rejected">Rejected</span>
+
+            {% else %}
+                <span class="status-pending">Pending</span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- ================= COMPANY ================= -->
+
+    <div class="heading">
+        ID Requisition Type Creation
+    </div>
+
+    <div class="section">
+
+        <div style="font-weight:bold; margin-bottom:10px;">
+            Company Information:
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Company Name</label>
+
+                <div class="value">
+                    {{ form.company_name }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Location</label>
+
+                <div class="value">
+                    {{ form.location }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Date</label>
+
+                <div class="value">
+                    {{ form.form_date }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="long-box"></div>
+
+    </div>
+
+    <!-- ================= PERSONAL ================= -->
+
+    <div class="heading">
+        Personal Details
+    </div>
+
+    <div class="section">
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>First Name</label>
+
+                <div class="value">
+                    {{ form.first_name }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Middle Name</label>
+
+                <div class="value">
+                    {{ form.middle_name }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Last Name</label>
+
+                <div class="value">
+                    {{ form.last_name }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Employee Code</label>
+
+                <div class="value">
+                    {{ form.employee_code }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Contact Detail</label>
+
+                <div class="value">
+                    {{ form.contact_detail }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Extn No</label>
+
+                <div class="value">
+                    {{ form.extn_no }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Mobile</label>
+
+                <div class="value">
+                    {{ form.mobile }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Date Of Joining</label>
+
+                <div class="value">
+                    {{ form.joining_date }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Department</label>
+
+                <div class="value">
+                    {{ form.department }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Designation</label>
+
+                <div class="value">
+                    {{ form.designation }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= MAIL ================= -->
+
+    <div class="heading">
+        Mail ID Creation Request
+    </div>
+
+    <div class="section">
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Email Type</label>
+
+                <div class="value">
+                    {{ form.email_type }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Mail Service Facility</label>
+
+                <div class="value">
+                    {{ form.mail_service }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Mail ID Created By</label>
+
+                <div class="value">
+                    {{ form.created_by }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Insert DOMAIN</label>
+
+                <div class="value">
+                    {{ form.domain_name }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Preferred ID</label>
+
+                <div class="value">
+                    {{ form.preferred_id }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="note">
+            I hereby undertake that this ID is solely for the purpose of business use and will not be shared with anyone.
+        </div>
+
+    </div>
+
+    <!-- ================= IT HEAD ================= -->
+
+    <div class="heading">
+        IT Head
+    </div>
+
+    <div class="section">
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Name</label>
+
+                <div class="value">
+                    {{ form.it_name }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Designation</label>
+
+                <div class="value">
+                    {{ form.it_designation }}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Contact Detail</label>
+
+                <div class="value">
+                    {{ form.it_contact }}
+                </div>
+
+            </div>
+
+            <div class="field">
+
+                <label>Email Address</label>
+
+                <div class="value">
+                    {{ form.it_email }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= REMARKS ================= -->
+
+    <div class="heading">
+        Tech Support Remarks
+    </div>
+
+    <div class="section">
+
+        <textarea readonly>{{ form.remarks }}</textarea>
+
+    </div>
+
+    <!-- ================= SIGNATURE ================= -->
+
+    <div class="footer-row">
+
+        <div class="sign">
+            Employee Signature
+        </div>
+
+        <div class="sign">
+            Tech Support Signature
+        </div>
+
+    </div>
+
+    <!-- ================= BUTTONS ================= -->
+
+    <center class="no-print">
+
+        <button type="button" class="btn btn-dark" onclick="window.print()">
+            🖨 Print Form
+        </button>
+
+        <a href="/download_pdf/{{ form.id }}" class="btn btn-danger">
+            📄 Download PDF
+        </a>
+
+        <a href="/admin_dashboard" class="btn btn-secondary">
+            ⬅ Back
+        </a>
+
+    </center>
+
+</div>
+
+</body>
+</html>
