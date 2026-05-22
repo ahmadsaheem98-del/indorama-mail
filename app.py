@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, send_file
 import sqlite3
 import pandas as pd
 from io import BytesIO
+import pdfkit
 
 app = Flask(__name__)
 
@@ -73,24 +74,24 @@ def login():
 
     if request.method == "POST":
 
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        # USER LOGIN
+        # USER
         if username == "user" and password == "user123":
 
             session["role"] = "user"
 
             return redirect("/user_dashboard")
 
-        # HR LOGIN
+        # HR
         elif username == "hr" and password == "hr123":
 
             session["role"] = "hr"
 
             return redirect("/hr_dashboard")
 
-        # ADMIN LOGIN
+        # ADMIN
         elif username == "admin" and password == "admin123":
 
             session["role"] = "admin"
@@ -124,8 +125,11 @@ def user_dashboard():
     cursor = conn.cursor()
 
     cursor.execute("""
+
     SELECT * FROM forms
+
     ORDER BY id DESC
+
     """)
 
     forms = cursor.fetchall()
@@ -137,14 +141,12 @@ def user_dashboard():
     SELECT COUNT(*) FROM forms
     WHERE hr_status='Pending'
     """)
-
     pending_forms = cursor.fetchone()[0]
 
     cursor.execute("""
     SELECT COUNT(*) FROM forms
     WHERE admin_status='Approved'
     """)
-
     approved_forms = cursor.fetchone()[0]
 
     conn.close()
@@ -221,35 +223,35 @@ def form():
 
         """, (
 
-            request.form["company_name"],
-            request.form["location"],
-            request.form["form_date"],
+            request.form.get("company_name"),
+            request.form.get("location"),
+            request.form.get("form_date"),
 
-            request.form["first_name"],
-            request.form["middle_name"],
-            request.form["last_name"],
+            request.form.get("first_name"),
+            request.form.get("middle_name"),
+            request.form.get("last_name"),
 
-            request.form["employee_code"],
-            request.form["contact_detail"],
-            request.form["extn_no"],
+            request.form.get("employee_code"),
+            request.form.get("contact_detail"),
+            request.form.get("extn_no"),
 
-            request.form["mobile"],
-            request.form["joining_date"],
-            request.form["department"],
-            request.form["designation"],
+            request.form.get("mobile"),
+            request.form.get("joining_date"),
+            request.form.get("department"),
+            request.form.get("designation"),
 
-            request.form["email_type"],
-            request.form["mail_service"],
-            request.form["created_by"],
-            request.form["domain_name"],
-            request.form["preferred_id"],
+            request.form.get("email_type"),
+            request.form.get("mail_service"),
+            request.form.get("created_by"),
+            request.form.get("domain_name"),
+            request.form.get("preferred_id"),
 
-            request.form["it_name"],
-            request.form["it_designation"],
-            request.form["it_contact"],
-            request.form["it_email"],
+            request.form.get("it_name"),
+            request.form.get("it_designation"),
+            request.form.get("it_contact"),
+            request.form.get("it_email"),
 
-            request.form["remarks"],
+            request.form.get("remarks"),
 
             "Pending",
             "Pending"
@@ -296,21 +298,18 @@ def hr_dashboard():
     SELECT COUNT(*) FROM forms
     WHERE hr_status='Pending'
     """)
-
     pending_forms = cursor.fetchone()[0]
 
     cursor.execute("""
     SELECT COUNT(*) FROM forms
     WHERE hr_status='Approved'
     """)
-
     approved_forms = cursor.fetchone()[0]
 
     cursor.execute("""
     SELECT COUNT(*) FROM forms
     WHERE hr_status='Rejected'
     """)
-
     rejected_forms = cursor.fetchone()[0]
 
     conn.close()
@@ -395,8 +394,6 @@ def admin_dashboard():
 
     cursor = conn.cursor()
 
-    # ONLY HR APPROVED FORMS
-
     cursor.execute("""
 
     SELECT * FROM forms
@@ -416,21 +413,18 @@ def admin_dashboard():
     SELECT COUNT(*) FROM forms
     WHERE admin_status='Approved'
     """)
-
     approved_forms = cursor.fetchone()[0]
 
     cursor.execute("""
     SELECT COUNT(*) FROM forms
     WHERE admin_status='Pending'
     """)
-
     pending_forms = cursor.fetchone()[0]
 
     cursor.execute("""
     SELECT COUNT(*) FROM forms
     WHERE admin_status='Rejected'
     """)
-
     rejected_forms = cursor.fetchone()[0]
 
     conn.close()
@@ -513,8 +507,11 @@ def view(id):
     cursor = conn.cursor()
 
     cursor.execute("""
+
     SELECT * FROM forms
+
     WHERE id=?
+
     """, (id,))
 
     form = cursor.fetchone()
@@ -522,6 +519,57 @@ def view(id):
     conn.close()
 
     return render_template("view.html", form=form)
+
+
+# ================= PDF DOWNLOAD =================
+
+@app.route("/download/<int:id>")
+def download(id):
+
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM forms WHERE id=?",
+        (id,)
+    )
+
+    form = cursor.fetchone()
+
+    conn.close()
+
+    rendered = render_template(
+        "view.html",
+        form=form
+    )
+
+    config = pdfkit.configuration(
+        wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+    )
+
+    pdf = pdfkit.from_string(
+
+        rendered,
+
+        False,
+
+        configuration=config
+
+    )
+
+    return send_file(
+
+        BytesIO(pdf),
+
+        download_name=f"form_{id}.pdf",
+
+        as_attachment=True,
+
+        mimetype="application/pdf"
+
+    )
 
 
 # ================= EXCEL EXPORT =================
