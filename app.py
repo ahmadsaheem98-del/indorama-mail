@@ -1,27 +1,21 @@
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
-import pandas as pd
-from io import BytesIO
 import os
 
 app = Flask(__name__)
-app.secret_key = "mail_secret_key"
-
-# ================= DB PATH FIX =================
-
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database.db")
+app.secret_key = "erp_system_key"
 
 
 # ================= DATABASE =================
 
 def init_db():
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
 
-    cursor.execute("""
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS forms(
+
         id INTEGER PRIMARY KEY AUTOINCREMENT,
 
         company_name TEXT,
@@ -53,9 +47,10 @@ def init_db():
         it_email TEXT,
 
         remarks TEXT,
+        signature TEXT,
 
         hr_status TEXT DEFAULT 'Pending',
-        admin_status TEXT DEFAULT 'Pending'
+        hr_note TEXT
     )
     """)
 
@@ -73,20 +68,23 @@ def login():
 
     if request.method == "POST":
 
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form["username"]
+        password = request.form["password"]
 
-        if username == "user" and password == "user123":
-            session["role"] = "user"
-            return redirect("/user_dashboard")
-
-        elif username == "hr" and password == "hr123":
-            session["role"] = "hr"
-            return redirect("/hr_dashboard")
-
-        elif username == "admin" and password == "admin123":
+        # ADMIN
+        if username == "admin" and password == "admin123":
             session["role"] = "admin"
             return redirect("/admin")
+
+        # HR
+        elif username == "hr" and password == "hr123":
+            session["role"] = "hr"
+            return redirect("/hr")
+
+        # USER
+        elif username == "user" and password == "user123":
+            session["role"] = "user"
+            return redirect("/user")
 
     return render_template("login.html")
 
@@ -95,45 +93,50 @@ def login():
 
 @app.route("/logout")
 def logout():
+
     session.clear()
     return redirect("/")
 
 
 # ================= USER DASHBOARD =================
 
-@app.route("/user_dashboard")
-def user_dashboard():
+@app.route("/user")
+def user():
 
     if session.get("role") != "user":
         return redirect("/")
 
-    conn = sqlite3.connect(DB_PATH)
+    search = request.args.get("search", "")
+    status = request.args.get("status", "")
+
+    conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute("SELECT * FROM forms ORDER BY id DESC")
-    forms = cursor.fetchall()
+    query = "SELECT * FROM forms WHERE 1=1"
+    values = []
 
-    cursor.execute("SELECT COUNT(*) FROM forms")
-    total_forms = cursor.fetchone()[0]
+    if status:
+        query += " AND hr_status=?"
+        values.append(status)
 
-    cursor.execute("SELECT COUNT(*) FROM forms WHERE hr_status='Pending'")
-    pending_forms = cursor.fetchone()[0]
+    if search:
+        query += " AND (first_name LIKE ? OR employee_code LIKE ?)"
+        values.append(f"%{search}%")
+        values.append(f"%{search}%")
 
-    cursor.execute("SELECT COUNT(*) FROM forms WHERE admin_status='Approved'")
-    approved_forms = cursor.fetchone()[0]
+    query += " ORDER BY id DESC"
+
+    cur.execute(query, values)
+
+    forms = cur.fetchall()
 
     conn.close()
 
-    return render_template("user_dashboard.html",
-        forms=forms,
-        total_forms=total_forms,
-        pending_forms=pending_forms,
-        approved_forms=approved_forms
-    )
+    return render_template("user_dashboard.html", forms=forms)
 
 
-# ================= FORM =================
+# ================= CREATE FORM =================
 
 @app.route("/form", methods=["GET", "POST"])
 def form():
@@ -143,179 +146,262 @@ def form():
 
     if request.method == "POST":
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        signature_path = ""
 
-        cursor.execute("""
+        file = request.files.get("signature")
+
+        if file and file.filename != "":
+
+            os.makedirs("static/signatures", exist_ok=True)
+
+            signature_path = "static/signatures/" + file.filename
+
+            file.save(signature_path)
+
+        conn = sqlite3.connect("database.db")
+        cur = conn.cursor()
+
+        cur.execute("""
         INSERT INTO forms(
-        company_name, location, form_date,
-        first_name, middle_name, last_name,
-        employee_code, contact_detail, extn_no,
-        mobile, joining_date, department, designation,
-        email_type, mail_service, created_by,
-        domain_name, preferred_id,
-        it_name, it_designation, it_contact, it_email,
-        remarks,
-        hr_status, admin_status
+
+            company_name,
+            location,
+            form_date,
+
+            first_name,
+            middle_name,
+            last_name,
+
+            employee_code,
+            contact_detail,
+            extn_no,
+
+            mobile,
+            joining_date,
+            department,
+            designation,
+
+            email_type,
+            mail_service,
+            created_by,
+            domain_name,
+            preferred_id,
+
+            it_name,
+            it_designation,
+            it_contact,
+            it_email,
+
+            remarks,
+            signature
+
         )
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
-            request.form.get("company_name"),
-            request.form.get("location"),
-            request.form.get("form_date"),
 
-            request.form.get("first_name"),
-            request.form.get("middle_name"),
-            request.form.get("last_name"),
+            request.form["company_name"],
+            request.form["location"],
+            request.form["form_date"],
 
-            request.form.get("employee_code"),
-            request.form.get("contact_detail"),
-            request.form.get("extn_no"),
+            request.form["first_name"],
+            request.form["middle_name"],
+            request.form["last_name"],
 
-            request.form.get("mobile"),
-            request.form.get("joining_date"),
-            request.form.get("department"),
-            request.form.get("designation"),
+            request.form["employee_code"],
+            request.form["contact_detail"],
+            request.form["extn_no"],
 
-            request.form.get("email_type"),
-            request.form.get("mail_service"),
-            request.form.get("created_by"),
-            request.form.get("domain_name"),
-            request.form.get("preferred_id"),
+            request.form["mobile"],
+            request.form["joining_date"],
+            request.form["department"],
+            request.form["designation"],
 
-            request.form.get("it_name"),
-            request.form.get("it_designation"),
-            request.form.get("it_contact"),
-            request.form.get("it_email"),
+            request.form["email_type"],
+            request.form["mail_service"],
+            request.form["created_by"],
+            request.form["domain_name"],
+            request.form["preferred_id"],
 
-            request.form.get("remarks"),
+            request.form["it_name"],
+            request.form["it_designation"],
+            request.form["it_contact"],
+            request.form["it_email"],
 
-            "Pending",
-            "Pending"
+            request.form["remarks"],
+            signature_path
         ))
 
         conn.commit()
         conn.close()
 
-        return redirect("/user_dashboard")
+        return redirect("/user")
 
     return render_template("form.html")
 
 
-# ================= HR + ADMIN ROUTES (UNCHANGED LOGIC) =================
-# (kept same for your system)
+# ================= HR DASHBOARD =================
 
-@app.route("/hr_dashboard")
-def hr_dashboard():
+@app.route("/hr")
+def hr():
+
     if session.get("role") != "hr":
         return redirect("/")
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM forms WHERE hr_status='Pending'")
-    forms = cursor.fetchall()
+    search = request.args.get("search", "")
+    status = request.args.get("status", "")
+
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    query = "SELECT * FROM forms WHERE 1=1"
+    values = []
+
+    if status:
+        query += " AND hr_status=?"
+        values.append(status)
+
+    if search:
+        query += " AND (first_name LIKE ? OR employee_code LIKE ?)"
+        values.append(f"%{search}%")
+        values.append(f"%{search}%")
+
+    query += " ORDER BY id DESC"
+
+    cur.execute(query, values)
+
+    forms = cur.fetchall()
 
     conn.close()
+
     return render_template("hr_dashboard.html", forms=forms)
 
 
+# ================= HR APPROVE =================
+
 @app.route("/hr_approve/<int:id>")
 def hr_approve(id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE forms SET hr_status='Approved' WHERE id=?", (id,))
-    conn.commit()
+
+    if session.get("role") != "hr":
+        return redirect("/")
+
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+
+    cur.execute("SELECT hr_status FROM forms WHERE id=?", (id,))
+    status = cur.fetchone()[0]
+
+    if status == "Pending":
+
+        cur.execute("""
+        UPDATE forms
+        SET hr_status='Approved'
+        WHERE id=?
+        """, (id,))
+
+        conn.commit()
+
     conn.close()
-    return redirect("/hr_dashboard")
+
+    return redirect("/hr")
 
 
-@app.route("/hr_reject/<int:id>")
+# ================= HR REJECT =================
+
+@app.route("/hr_reject/<int:id>", methods=["POST"])
 def hr_reject(id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE forms SET hr_status='Rejected' WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect("/hr_dashboard")
 
+    if session.get("role") != "hr":
+        return redirect("/")
+
+    note = request.form.get("note")
+
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+
+    cur.execute("SELECT hr_status FROM forms WHERE id=?", (id,))
+    status = cur.fetchone()[0]
+
+    if status == "Pending":
+
+        cur.execute("""
+        UPDATE forms
+        SET hr_status='Rejected',
+            hr_note=?
+        WHERE id=?
+        """, (note, id))
+
+        conn.commit()
+
+    conn.close()
+
+    return redirect("/hr")
+
+
+# ================= ADMIN =================
 
 @app.route("/admin")
 def admin():
+
     if session.get("role") != "admin":
         return redirect("/")
 
-    conn = sqlite3.connect(DB_PATH)
+    search = request.args.get("search", "")
+
+    conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute("SELECT * FROM forms WHERE hr_status='Approved'")
-    forms = cursor.fetchall()
+    query = """
+    SELECT * FROM forms
+    WHERE hr_status='Approved'
+    """
+
+    values = []
+
+    if search:
+        query += """
+        AND (
+            first_name LIKE ?
+            OR employee_code LIKE ?
+        )
+        """
+
+        values.append(f"%{search}%")
+        values.append(f"%{search}%")
+
+    query += " ORDER BY id DESC"
+
+    cur.execute(query, values)
+
+    forms = cur.fetchall()
 
     conn.close()
+
     return render_template("admin_dashboard.html", forms=forms)
-
-
-@app.route("/approve/<int:id>")
-def approve(id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE forms SET admin_status='Approved' WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect("/admin")
-
-
-@app.route("/reject/<int:id>")
-def reject(id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE forms SET admin_status='Rejected' WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect("/admin")
 
 
 # ================= VIEW =================
 
 @app.route("/view/<int:id>")
 def view(id):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM forms WHERE id=?", (id,))
-    form = cursor.fetchone()
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM forms WHERE id=?", (id,))
+
+    form = cur.fetchone()
 
     conn.close()
 
     return render_template("view.html", form=form)
 
 
-# ================= EXCEL ONLY (WORKING) =================
-
-@app.route("/export_excel/<int:id>")
-def export_excel(id):
-
-    conn = sqlite3.connect(DB_PATH)
-    df = pd.read_sql_query("SELECT * FROM forms WHERE id=?", conn, params=(id,))
-    conn.close()
-
-    output = BytesIO()
-
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False)
-
-    output.seek(0)
-
-    return send_file(output,
-        as_attachment=True,
-        download_name=f"form_{id}.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-
-# ================= RUN =================
+# ================= START =================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    app.run(debug=True)

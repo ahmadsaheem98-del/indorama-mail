@@ -743,19 +743,37 @@ textarea{
 
     <div class="footer-row">
 
-        <div class="sign">
+    <!-- EMPLOYEE SIGNATURE -->
 
-            Employee Signature
+    <div class="sign">
 
-        </div>
+        <p><b>Employee Signature</b></p>
 
-        <div class="sign">
+        {% if form.signature %}
 
-            Tech Support Signature
+            <img src="/{{ form.signature }}"
+                 style="width:160px;
+                 height:70px;
+                 object-fit:contain;
+                 margin-top:10px;">
 
-        </div>
+        {% else %}
+
+            <p>No Signature</p>
+
+        {% endif %}
 
     </div>
+
+    <!-- TECH SUPPORT -->
+
+    <div class="sign">
+
+        <p><b>Tech Support Signature</b></p>
+
+    </div>
+
+</div>
 
     <!-- BUTTON -->
 
